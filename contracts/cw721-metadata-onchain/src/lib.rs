@@ -27,6 +27,10 @@ pub struct Metadata {
     pub background_color: Option<String>,
     pub animation_url: Option<String>,
     pub youtube_url: Option<String>,
+
+    pub lottery_index: String,
+    pub number_starting_index: u32,
+    pub number_contained: u32,
 }
 
 pub type Extension = Option<Metadata>;
@@ -105,7 +109,6 @@ mod tests {
             ..Metadata::default()
         });
         let exec_msg = ExecuteMsg::Mint {
-            token_id: token_id.to_string(),
             owner: "john".to_string(),
             token_uri: token_uri.clone(),
             extension: extension.clone(),

@@ -2,7 +2,7 @@ use cw_ownable::OwnershipError;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use cosmwasm_std::{Binary, CustomMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{Addr, Binary, CustomMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 
 use cw2::{get_contract_version, set_contract_version, ContractVersion};
 use cw721::{ContractInfoResponse, Cw721Execute, Cw721ReceiveMsg, Expiration};
@@ -37,7 +37,8 @@ where
             symbol: msg.symbol,
         };
         self.contract_info.save(deps.storage, &info)?;
-        cw_ownable::initialize_owner(deps.storage, deps.api, Some(&msg.minter))?;
+        self.minter.save(deps.storage, &_info.sender)?;
+        cw_ownable::initialize_owner(deps.storage, deps.api, Some(&_info.sender.to_string()))?;
         Ok(Response::default())
     }
 
@@ -50,11 +51,10 @@ where
     ) -> Result<Response<C>, ContractError> {
         match msg {
             ExecuteMsg::Mint {
-                token_id,
                 owner,
                 token_uri,
                 extension,
-            } => self.mint(deps, info, token_id, owner, token_uri, extension),
+            } => self.mint(deps, info, owner, token_uri, extension),
             ExecuteMsg::Approve {
                 spender,
                 token_id,
@@ -79,6 +79,7 @@ where
             ExecuteMsg::Burn { token_id } => self.burn(deps, env, info, token_id),
             ExecuteMsg::UpdateOwnership(action) => Self::update_ownership(deps, env, info, action),
             ExecuteMsg::Extension { msg: _ } => Ok(Response::default()),
+            ExecuteMsg::UpdateMinter { minter } => Self::change_minter(&self, deps, info, minter),
         }
     }
 }
@@ -95,12 +96,15 @@ where
         &self,
         deps: DepsMut,
         info: MessageInfo,
-        token_id: String,
         owner: String,
         token_uri: Option<String>,
         extension: T,
     ) -> Result<Response<C>, ContractError> {
-        cw_ownable::assert_owner(deps.storage, &info.sender)?;
+        let minter = self.minter.load(deps.storage)?;
+
+        if info.sender != minter {
+            return Err(ContractError::Unauthorized {});
+        }
 
         // create the token
         let token = TokenInfo {
@@ -109,6 +113,7 @@ where
             token_uri,
             extension,
         };
+        let token_id = self.token_index(deps.storage)?.to_string();
         self.tokens
             .update(deps.storage, &token_id, |old| match old {
                 Some(_) => Err(ContractError::Claimed {}),
@@ -116,6 +121,7 @@ where
             })?;
 
         self.increment_tokens(deps.storage)?;
+        self.increment_indexes(deps.storage)?;
 
         Ok(Response::new()
             .add_attribute("action", "mint")
@@ -132,6 +138,18 @@ where
     ) -> Result<Response<C>, ContractError> {
         let ownership = cw_ownable::update_ownership(deps, &env.block, &info.sender, action)?;
         Ok(Response::new().add_attributes(ownership.into_attributes()))
+    }
+
+    pub fn change_minter(
+        &self,
+        deps: DepsMut,
+        info: MessageInfo,
+        minter: Addr,
+    ) -> Result<Response<C>, ContractError> {
+        cw_ownable::assert_owner(deps.storage, &info.sender)?;
+        self.update_minter(minter, deps.storage)?;
+
+        Ok(Response::new().add_attribute("action", "change_minter"))
     }
 
     /// Migrates the contract from the previous version to the current

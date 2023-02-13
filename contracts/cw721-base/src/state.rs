@@ -15,10 +15,13 @@ where
     E: CustomMsg,
 {
     pub contract_info: Item<'a, ContractInfoResponse>,
+    pub token_index: Item<'a, u64>,
     pub token_count: Item<'a, u64>,
     /// Stored as (granter, operator) giving operator full control over granter's account
     pub operators: Map<'a, (&'a Addr, &'a Addr), Expiration>,
     pub tokens: IndexedMap<'a, &'a str, TokenInfo<T>, TokenIndexes<'a, T>>,
+
+    pub minter: Item<'a, Addr>,
 
     pub(crate) _custom_response: PhantomData<C>,
     pub(crate) _custom_query: PhantomData<Q>,
@@ -44,9 +47,11 @@ where
     fn default() -> Self {
         Self::new(
             "nft_info",
+            "num_indexes",
             "num_tokens",
             "operators",
             "tokens",
+            "minters",
             "tokens__owner",
         )
     }
@@ -60,9 +65,11 @@ where
 {
     fn new(
         contract_key: &'a str,
+        token_index_key: &'a str,
         token_count_key: &'a str,
         operator_key: &'a str,
         tokens_key: &'a str,
+        minter_key: &'a str,
         tokens_owner_key: &'a str,
     ) -> Self {
         let indexes = TokenIndexes {
@@ -70,7 +77,9 @@ where
         };
         Self {
             contract_info: Item::new(contract_key),
+            token_index: Item::new(token_index_key),
             token_count: Item::new(token_count_key),
+            minter: Item::new(minter_key),
             operators: Map::new(operator_key),
             tokens: IndexedMap::new(tokens_key, indexes),
             _custom_response: PhantomData,
@@ -83,9 +92,19 @@ where
         Ok(self.token_count.may_load(storage)?.unwrap_or_default())
     }
 
+    pub fn token_index(&self, storage: &dyn Storage) -> StdResult<u64> {
+        Ok(self.token_index.may_load(storage)?.unwrap_or_default())
+    }
+
     pub fn increment_tokens(&self, storage: &mut dyn Storage) -> StdResult<u64> {
         let val = self.token_count(storage)? + 1;
         self.token_count.save(storage, &val)?;
+        Ok(val)
+    }
+
+    pub fn increment_indexes(&self, storage: &mut dyn Storage) -> StdResult<u64> {
+        let val = self.token_index(storage)? + 1;
+        self.token_index.save(storage, &val)?;
         Ok(val)
     }
 
@@ -93,6 +112,11 @@ where
         let val = self.token_count(storage)? - 1;
         self.token_count.save(storage, &val)?;
         Ok(val)
+    }
+
+    pub fn update_minter(&self, address: Addr, storage: &mut dyn Storage) -> StdResult<u64> {
+        self.minter.save(storage, &address)?;
+        Ok(0)
     }
 }
 

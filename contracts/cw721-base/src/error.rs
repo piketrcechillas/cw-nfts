@@ -13,6 +13,9 @@ pub enum ContractError {
     #[error("token_id already claimed")]
     Claimed {},
 
+    #[error("Unauthorized")]
+    Unauthorized {},
+
     #[error("Cannot set approval that is already expired")]
     Expired {},
 
