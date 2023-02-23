@@ -4,6 +4,34 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
+export type Expiration = {
+  at_height: number;
+} | {
+  at_time: Timestamp;
+} | {
+  never: {};
+};
+export type Timestamp = Uint64;
+export type Uint64 = string;
+export interface AllNftInfoResponseForEmpty {
+  access: OwnerOfResponse;
+  info: NftInfoResponseForEmpty;
+}
+export interface OwnerOfResponse {
+  approvals: Approval[];
+  owner: string;
+}
+export interface Approval {
+  expires: Expiration;
+  spender: string;
+}
+export interface NftInfoResponseForEmpty {
+  extension: Empty;
+  token_uri?: string | null;
+}
+export interface Empty {
+  [k: string]: unknown;
+}
 export type ExecuteMsgForEmptyAndEmpty = {
   transfer_nft: {
     recipient: string;
@@ -57,15 +85,6 @@ export type ExecuteMsgForEmptyAndEmpty = {
   update_ownership: Action;
 };
 export type Binary = string;
-export type Expiration = {
-  at_height: number;
-} | {
-  at_time: Timestamp;
-} | {
-  never: {};
-};
-export type Timestamp = Uint64;
-export type Uint64 = string;
 export type Addr = string;
 export type Action = {
   transfer_ownership: {
@@ -73,13 +92,13 @@ export type Action = {
     new_owner: string;
   };
 } | "accept_ownership" | "renounce_ownership";
-export interface Empty {
-  [k: string]: unknown;
-}
 export interface InstantiateMsg {
   minter: string;
   name: string;
   symbol: string;
+}
+export interface OperatorsResponse {
+  operators: Approval[];
 }
 export type QueryMsgForEmpty = {
   owner_of: {
@@ -257,25 +276,6 @@ export type QueryMsg = {
 } | {
   ownership: {};
 };
-export interface AllNftInfoResponseForEmpty {
-  access: OwnerOfResponse;
-  info: NftInfoResponseForEmpty;
-}
-export interface OwnerOfResponse {
-  approvals: Approval[];
-  owner: string;
-}
-export interface Approval {
-  expires: Expiration;
-  spender: string;
-}
-export interface NftInfoResponseForEmpty {
-  extension: Empty;
-  token_uri?: string | null;
-}
-export interface OperatorsResponse {
-  operators: Approval[];
-}
 export interface TokensResponse {
   tokens: string[];
 }

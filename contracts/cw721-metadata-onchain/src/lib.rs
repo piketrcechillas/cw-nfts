@@ -1,5 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Empty;
+use cosmwasm_std::Timestamp;
+use cosmwasm_std::Uint128;
 use cw2::set_contract_version;
 pub use cw721_base::{ContractError, InstantiateMsg, MinterResponse};
 
@@ -31,6 +33,10 @@ pub struct Metadata {
     pub lottery_index: String,
     pub number_starting_index: u32,
     pub number_contained: u32,
+
+    pub receive_timestamp: Timestamp,
+    pub ticket_type: u32,
+    pub ticket_price: Uint128,
 }
 
 pub type Extension = Option<Metadata>;

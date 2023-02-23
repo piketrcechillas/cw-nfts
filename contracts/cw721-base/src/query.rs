@@ -324,9 +324,7 @@ where
     }
 
     pub fn minter(&self, deps: Deps) -> StdResult<MinterResponse> {
-        let minter = cw_ownable::get_ownership(deps.storage)?
-            .owner
-            .map(|a| a.into_string());
+        let minter = Some(self.minter.load(deps.storage)?.to_string());
 
         Ok(MinterResponse { minter })
     }
